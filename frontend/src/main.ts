@@ -9,6 +9,7 @@ import { FlipCard } from "./flip-card";
 interface State {
   entries: Entry[];
   selectedDate: string;
+  authenticated: boolean;
   timeStage: TimeStage;
   cardFlipped: boolean;
   draftTask: string;
@@ -18,6 +19,7 @@ interface State {
 const state: State = {
   entries: [],
   selectedDate: todayStr(),
+  authenticated: false,
   timeStage: "closed",
   cardFlipped: false,
   draftTask: "",
@@ -50,6 +52,20 @@ function escapeHtml(s: string): string {
 
 function totalSeconds(entries: Entry[]): number {
   return entries.reduce((sum, e) => sum + (e.duration_seconds ?? 0), 0);
+}
+
+function renderLoginSection(): string {
+  return `
+    <section class="card login-card">
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-password">访问密码</label>
+          <input type="password" id="login-password" placeholder="输入密码" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn btn-primary">登录</button>
+      </form>
+    </section>
+  `;
 }
 
 function captureFormDrafts() {
@@ -178,13 +194,18 @@ function render(options: { preserveDrafts?: boolean } = {}) {
       <h1>Lyube</h1>
       <p class="tagline">记下事情，感知时间</p>
     </header>
-    ${renderFormSection()}
-    ${renderEntriesSection()}
+    ${
+      state.authenticated
+        ? `${renderFormSection()}${renderEntriesSection()}`
+        : renderLoginSection()
+    }
   `;
 
   bindEvents();
-  mountPickers();
-  mountFlipCard();
+  if (state.authenticated) {
+    mountPickers();
+    mountFlipCard();
+  }
 }
 
 function restoreFormDrafts() {
@@ -241,6 +262,21 @@ function mountPickers() {
 }
 
 function bindEvents() {
+  document.getElementById("login-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const password = (document.getElementById("login-password") as HTMLInputElement).value;
+
+    try {
+      const res = await api.login(password);
+      state.authenticated = res.authenticated;
+      await refreshEntries();
+      render({ preserveDrafts: false });
+      showToast("已登录");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "登录失败", true);
+    }
+  });
+
   document.getElementById("record-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const task_name = (document.getElementById("task-name") as HTMLInputElement).value.trim();
@@ -306,7 +342,11 @@ async function refreshEntries() {
 async function init() {
   try {
     await api.health();
-    await refreshEntries();
+    const auth = await api.authStatus();
+    state.authenticated = auth.authenticated;
+    if (state.authenticated) {
+      await refreshEntries();
+    }
     render();
   } catch {
     const app = document.getElementById("app");

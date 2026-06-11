@@ -11,6 +11,7 @@ const BASE = "/api";
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { "Content-Type": "application/json", ...init?.headers },
+    credentials: "include",
     ...init,
   });
   if (!res.ok) {
@@ -27,6 +28,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   health: () => request<{ status: string }>("/health"),
+
+  authStatus: () => request<{ authenticated: boolean }>("/auth/status"),
+
+  login: (password: string) =>
+    request<{ authenticated: boolean }>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    }),
+
+  logout: () =>
+    request<{ authenticated: boolean }>("/auth/logout", {
+      method: "POST",
+    }),
 
   listEntries: (date?: string) =>
     request<Entry[]>(`/entries${date ? `?date=${date}` : ""}`),

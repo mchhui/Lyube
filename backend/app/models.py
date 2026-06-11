@@ -16,3 +16,7 @@ class Entry(BaseModel):
     duration_seconds: Optional[int]
     notes: Optional[str] = None
     recorded_date: str
+
+
+class LoginRequest(BaseModel):
+    password: str = Field(..., min_length=1, max_length=200)
