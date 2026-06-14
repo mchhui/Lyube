@@ -109,13 +109,9 @@ export class CascadedTimePanel {
   }
 
   private onOuterGripDown = (e: Event) => {
-    this.armPointer(
-      e as PointerEvent,
-      (e as PointerEvent).currentTarget as HTMLElement,
-      true,
-      false,
-      null
-    );
+    const ev = e as PointerEvent;
+    ev.preventDefault();
+    this.armPointer(ev, ev.currentTarget as HTMLElement, true, false, null);
   };
 
   private onWheelPaperDown = (e: Event) => {
@@ -125,25 +121,39 @@ export class CascadedTimePanel {
     if (ev.target.closest(".wheel-input-overlay")) return;
     if (
       ev.target.closest(".wheel-scroll, #wheel-root, .wheel-picker, .wheel-picker-shell") &&
-      this.isInWheelActiveBand(ev.clientX, ev.clientY)
+      this.isInWheelDragZone(ev.clientX, ev.clientY, ev.pointerType)
     ) {
       return;
     }
 
+    if (ev.pointerType === "touch") ev.preventDefault();
     this.armPointer(ev, ev.currentTarget as HTMLElement, false, false, null);
   };
 
-  /** 中央高亮带：仅此处交给轮盘拖拽，其余区域用于面板上推/下拉 */
-  private isInWheelActiveBand(clientX: number, clientY: number): boolean {
-    const bands = this.container?.querySelectorAll<HTMLElement>(".wheel-highlight");
-    if (!bands?.length) return false;
-    for (const band of bands) {
-      const rect = band.getBoundingClientRect();
-      if (
+  /** 鼠标仅中央高亮带交给轮盘；触摸整块滚轮区域交给轮盘 */
+  private isInWheelDragZone(clientX: number, clientY: number, pointerType: string): boolean {
+    const viewports = this.container?.querySelectorAll<HTMLElement>(".wheel-viewport");
+    if (!viewports?.length) return false;
+
+    for (const viewport of viewports) {
+      const rect = viewport.getBoundingClientRect();
+      const inViewport =
         clientX >= rect.left &&
         clientX <= rect.right &&
         clientY >= rect.top &&
-        clientY <= rect.bottom
+        clientY <= rect.bottom;
+      if (!inViewport) continue;
+
+      if (pointerType === "touch") return true;
+
+      const band = viewport.querySelector<HTMLElement>(".wheel-highlight");
+      if (!band) return true;
+      const bandRect = band.getBoundingClientRect();
+      if (
+        clientX >= bandRect.left &&
+        clientX <= bandRect.right &&
+        clientY >= bandRect.top &&
+        clientY <= bandRect.bottom
       ) {
         return true;
       }
@@ -153,13 +163,9 @@ export class CascadedTimePanel {
 
   private onPresetGripDown = (e: Event) => {
     if (this.stage === "closed") return;
-    this.armPointer(
-      e as PointerEvent,
-      (e as PointerEvent).currentTarget as HTMLElement,
-      false,
-      true,
-      null
-    );
+    const ev = e as PointerEvent;
+    ev.preventDefault();
+    this.armPointer(ev, ev.currentTarget as HTMLElement, false, true, null);
   };
 
   private onPresetBodyDown = (e: Event) => {
@@ -210,18 +216,33 @@ export class CascadedTimePanel {
 
   private onMove = (e: PointerEvent) => {
     if (this.pointerTracking && !this.dragging && e.pointerId === this.pointerId) {
-      const axis = lockAxis(e.clientX - this.startX, e.clientY - this.startY);
-      if (!axis) return;
-      if (axis === "x") {
-        this.pointerTracking = false;
-        this.pendingPresetCell = null;
-        this.dragFromPresetGrip = false;
-        return;
+      const dx = e.clientX - this.startX;
+      const dy = e.clientY - this.startY;
+
+      if (this.tapToggle || this.dragFromPresetGrip) {
+        if (Math.abs(dy) < 2 && Math.abs(dx) < 2) return;
+        if (Math.abs(dx) > Math.abs(dy) * 1.2) {
+          this.pointerTracking = false;
+          this.pendingPresetCell = null;
+          this.dragFromPresetGrip = false;
+          return;
+        }
+        this.activateDrag(e);
+      } else {
+        const axis = lockAxis(dx, dy);
+        if (!axis) return;
+        if (axis === "x") {
+          this.pointerTracking = false;
+          this.pendingPresetCell = null;
+          this.dragFromPresetGrip = false;
+          return;
+        }
+        this.activateDrag(e);
       }
-      this.activateDrag(e);
     }
 
     if (!this.dragging || e.pointerId !== this.pointerId) return;
+    e.preventDefault();
     const delta = e.clientY - this.startY;
     if (Math.abs(delta) > MOVE_THRESHOLD) this.moved = true;
     this.pull = Math.max(0, Math.min(this.stage2, this.basePull() + delta));

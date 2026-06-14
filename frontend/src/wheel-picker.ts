@@ -121,9 +121,25 @@ export class WheelPicker {
     return Math.abs(clientY - center) <= ITEM_H / 2;
   }
 
-  private isScrollDragZone(el: HTMLElement, clientX: number, clientY: number): boolean {
+  private isScrollDragZone(
+    el: HTMLElement,
+    clientX: number,
+    clientY: number,
+    pointerType = "mouse"
+  ): boolean {
     const viewport = el.closest<HTMLElement>(".wheel-viewport");
     if (!viewport) return false;
+
+    if (pointerType === "touch") {
+      const rect = viewport.getBoundingClientRect();
+      return (
+        clientX >= rect.left &&
+        clientX <= rect.right &&
+        clientY >= rect.top &&
+        clientY <= rect.bottom
+      );
+    }
+
     const highlight = viewport.querySelector<HTMLElement>(".wheel-highlight");
     if (!highlight) return this.isCenterHit(viewport, clientY);
     const rect = highlight.getBoundingClientRect();
@@ -269,6 +285,7 @@ export class WheelPicker {
   ) {
     let wheelAccum = 0;
     let dragging = false;
+    let scrollSnapTimer: ReturnType<typeof setTimeout> | null = null;
 
     const applyIndex = (index: number) => {
       const clamped = Math.max(0, Math.min(getCount() - 1, index));
@@ -300,10 +317,11 @@ export class WheelPicker {
     );
 
     el.addEventListener("pointerdown", (e) => {
-      if (e.button !== 0) return;
+      if (e.button !== 0 && e.pointerType === "mouse") return;
       if ((e.target as HTMLElement).closest(".wheel-input-overlay")) return;
-      if (!this.isScrollDragZone(el, e.clientX, e.clientY)) return;
+      if (!this.isScrollDragZone(el, e.clientX, e.clientY, e.pointerType)) return;
 
+      if (e.pointerType === "touch") e.preventDefault();
       wheelAccum = 0;
       let tracking = true;
       let active = false;
@@ -338,6 +356,7 @@ export class WheelPicker {
           el.setPointerCapture(e.pointerId);
         }
 
+        ev.preventDefault();
         el.scrollTop = dragStartScroll - (ev.clientY - dragStartY);
       };
 
@@ -363,7 +382,11 @@ export class WheelPicker {
       "scroll",
       () => {
         if (dragging) return;
-        snapToNearest();
+        if (scrollSnapTimer) clearTimeout(scrollSnapTimer);
+        scrollSnapTimer = setTimeout(() => {
+          scrollSnapTimer = null;
+          snapToNearest();
+        }, 90);
       },
       { passive: true }
     );

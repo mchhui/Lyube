@@ -180,6 +180,16 @@ function renderEntriesSection(): string {
   `;
 }
 
+function renderExportSection(): string {
+  return `
+    <section class="card export-card">
+      <h2 class="export-card-title">给 AI 看</h2>
+      <p class="export-card-desc">导出全部时间记录为 JSON，按日分组并附带汇总，方便粘贴给 LLM 做分析。</p>
+      <button type="button" class="btn btn-secondary" id="btn-export">导出 JSON</button>
+    </section>
+  `;
+}
+
 function render(options: { preserveDrafts?: boolean } = {}) {
   if (options.preserveDrafts !== false) {
     captureFormDrafts();
@@ -196,7 +206,7 @@ function render(options: { preserveDrafts?: boolean } = {}) {
     </header>
     ${
       state.authenticated
-        ? `${renderFormSection()}${renderEntriesSection()}`
+        ? `${renderFormSection()}${renderEntriesSection()}${renderExportSection()}`
         : renderLoginSection()
     }
   `;
@@ -317,6 +327,24 @@ function bindEvents() {
     state.selectedDate = shiftDate(state.selectedDate, 1);
     await refreshEntries();
     render();
+  });
+
+  document.getElementById("btn-export")?.addEventListener("click", async () => {
+    try {
+      const data = await api.exportEntries();
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `lyube-时间记录-${todayStr()}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showToast(`已导出 ${data.记录概况.总条数} 条记录`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "导出失败", true);
+    }
   });
 
   document.querySelectorAll(".btn-delete").forEach((btn) => {

@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .database import get_connection, init_db
+from .export_format import build_llm_export
 from .models import Entry, EntryCreate, LoginRequest
 
 app = FastAPI(title="Lyube API", description="柳比歇夫式时间记录", version="0.2.0")
@@ -147,6 +148,19 @@ def create_entry(body: EntryCreate, _: None = Depends(_require_auth)):
         row = conn.execute("SELECT * FROM time_entries WHERE id = ?", (cur.lastrowid,)).fetchone()
 
     return _row_to_entry(row)
+
+
+@app.get("/api/entries/export")
+def export_entries(_: None = Depends(_require_auth)):
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT task_name, duration_seconds, notes, recorded_date
+            FROM time_entries
+            ORDER BY recorded_date DESC, id DESC
+            """
+        ).fetchall()
+    return build_llm_export(rows)
 
 
 @app.delete("/api/entries/{entry_id}", status_code=204)

@@ -220,6 +220,7 @@ textarea:focus {
 .scroll-reveal {
   margin: 0.25rem 0 1rem;
   user-select: none;
+  touch-action: none;
 }
 
 .scroll-reveal.dragging {
@@ -233,6 +234,7 @@ textarea:focus {
   align-items: center;
   padding: 0.75rem 1rem;
   cursor: grab;
+  touch-action: none;
   -webkit-tap-highlight-color: transparent;
   flex-shrink: 0;
 }
@@ -371,7 +373,7 @@ textarea:focus {
 /* iOS-style wheel picker */
 .wheel-picker-shell {
   position: relative;
-  touch-action: pan-y;
+  touch-action: none;
 }
 
 .wheel-picker {
@@ -463,7 +465,7 @@ textarea:focus {
   scroll-snap-type: y proximity;
   scroll-behavior: auto;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
+  touch-action: none;
   scrollbar-width: none;
   cursor: grab;
 }
@@ -530,6 +532,42 @@ textarea:focus {
   padding: 0.4rem 0.65rem;
   width: auto;
   font-size: 0.8rem;
+}
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.85rem;
+  width: auto;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.export-card {
+  margin-top: 0.25rem;
+}
+
+.export-card-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.export-card-desc {
+  margin: 0 0 1rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.export-card .btn-secondary {
+  width: 100%;
 }
 
 .date-nav {

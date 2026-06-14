@@ -21,11 +21,22 @@ MVP 功能：开始/停止计时、手动补录、按日查看记录与合计时
 .\start.ps1
 ```
 
+若提示「禁止运行脚本」，可改用 `.\start.bat`，或执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start.ps1
+```
+
 浏览器打开 **http://127.0.0.1:8000**
 
 ### 方式二：开发模式（前端热更新）
 
-需要**同时**运行后端和前端：
+```powershell
+.\dev.ps1
+# 或 .\dev.bat（绕过脚本执行策略限制）
+```
+
+也可手动开两个终端：
 
 ```powershell
 # 终端 1 - 后端

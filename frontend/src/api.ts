@@ -6,6 +6,37 @@ export interface Entry {
   recorded_date: string;
 }
 
+export interface LlmExportPayload {
+  数据说明: {
+    来源: string;
+    记录方式: string;
+    "给 AI 的提示": string;
+    导出时间: string;
+  };
+  记录概况: {
+    总条数: number;
+    有记录天数: number;
+    日期范围: string | null;
+    累计耗时: string;
+    按事情汇总: Array<{
+      事情: string;
+      次数: number;
+      累计耗时?: string;
+      耗时占比?: string;
+    }>;
+  };
+  按日记录: Array<{
+    日期: string;
+    日期描述: string;
+    当日合计: string;
+    记录: Array<{
+      事情: string;
+      耗时: string;
+      想法?: string;
+    }>;
+  }>;
+}
+
 const BASE = "/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -44,6 +75,8 @@ export const api = {
 
   listEntries: (date?: string) =>
     request<Entry[]>(`/entries${date ? `?date=${date}` : ""}`),
+
+  exportEntries: () => request<LlmExportPayload>("/entries/export"),
 
   create: (data: {
     task_name: string;

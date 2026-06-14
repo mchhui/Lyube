@@ -173,7 +173,9 @@ export class FlipCard {
 
   private isFlipExcluded(target: EventTarget | null): boolean {
     if (!(target instanceof HTMLElement)) return true;
-    return !!target.closest("button, .wheel-input-overlay");
+    return !!target.closest(
+      "button, .wheel-input-overlay, .scroll-reveal, .wheel-picker, .wheel-picker-shell, .preset-cell"
+    );
   }
 
   private resetGesture() {
